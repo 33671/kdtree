@@ -2,6 +2,7 @@
 #include "kdtree.h"
 #include "raylib.h"
 #include "reject_sampling.h"
+#include "simplex.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -35,6 +36,7 @@ Vector2 **gen_uniform(int width, int height, int layers, int *num_points) {
   DynamicArray *arr = da_init(pow(4, layers), sizeof(Vector2));
   for (int current_layer = 0; current_layer < layers; current_layer++) {
     int box_x_width = width / pow(2, current_layer + 1);
+    printf("box_x_width: %d\n", box_x_width);
     int box_y_height = height / pow(2, current_layer + 1);
     int xy_segment_count = pow(2, current_layer);
     for (int n = 0; n < pow(xy_segment_count, 2); n++) {
@@ -59,11 +61,11 @@ int main() {
   int num_points_gen = 0;
   Vector2 **generated_vec = gen_uniform(800, 800, 5, &num_points_gen);
   for (int i = 0; i < num_points_gen; i++) {
-    printf("x:%f,y:%f\n", generated_vec[i]->x, generated_vec[i]->y);
+    // printf("x:%f,y:%f\n", generated_vec[i]->x, generated_vec[i]->y);
   }
   printf("%d points generated", num_points_gen);
   InitWindow(800, 800, "kd tree");
-  SetTargetFPS(30);
+  SetTargetFPS(60);
   char *img_path =
       create_image(get_current_second(), "font.ttf", 256, 256, "output.png");
 
@@ -86,11 +88,26 @@ int main() {
     points_vector2[i].y = generated_vec[i]->y;
   }
   float interpolation = 0;
+  int noise_index = 0;
+  simplex1d_init();
   while (!WindowShouldClose()) {
 
-    ClearBackground(BLACK);
     BeginDrawing();
-
+    ClearBackground(BLACK);
+    double time_secs = GetTime() * 1.0f;
+    for (int i = 0; i < num_points_gen; i++) {
+      points_vector2[i].x =
+          generated_vec[i]->x + (simplex1d(i * 0.1 + time_secs) * 10.0);
+      points_vector2[i].y =
+          generated_vec[i]->y + (simplex1d(i * 0.1 + time_secs + 100.5) * 5.0);
+      noise_index++;
+      if (noise_index > 100000) {
+        noise_index = 0;
+      }
+    }
+    int fps = GetFPS();
+    const char *fps_s = TextFormat("FPS:%d", fps);
+    DrawText(fps_s, 0, 0, 10, WHITE);
     TreeNode *tree = buildKDTree(points_vector2, num_points_gen, 1, NULL, 0.5);
     DrawKDTree(tree, 0, 0, 800, 800);
     // DrawRectangle(0, 0, 800, 800, GREEN);
