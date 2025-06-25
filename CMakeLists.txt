@@ -7,7 +7,7 @@ include(FetchContent)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 # Dependencies
-set(RAYLIB_VERSION 5.0)
+set(RAYLIB_VERSION 5.5)
 
 FetchContent_Declare(
     raylib
@@ -28,6 +28,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 
 if ("${PLATFORM}" STREQUAL "Web")
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        ${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include
+    )
     add_custom_command(
         TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/src/resources $<TARGET_FILE_DIR:${PROJECT_NAME}>/../resources
@@ -43,9 +46,13 @@ endif()
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
+# target_link_libraries(${PROJECT_NAME} PRIVATE m)
 
 # Web Configurations
 if ("${PLATFORM}" STREQUAL "Web")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        LINK_FLAGS "-s ASYNCIFY=1"
+    )
     # Tell Emscripten to build an example.html file.
     set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
     target_link_options(${PROJECT_NAME} PUBLIC -sUSE_GLFW=3 PUBLIC --preload-file resources)

@@ -31,9 +31,11 @@ float triangle_wave(float time) {
     return -1.0f + 4.0f * (phase - 0.75f);
   }
 }
-Vector2 **gen_uniform(int width, int height, int layers, int *num_points) {
-  // Vector2* points = (Vector2 *)malloc(1024*sizeof(Vector2));
-  DynamicArray *arr = da_init(pow(4, layers), sizeof(Vector2));
+void gen_uniform(DynamicArray* arr,int width, int height, int layers) {
+  if (arr->element_size != sizeof(Vector2)) {
+    fprintf(stderr, "Error: DynamicArray element size mismatch.\n");
+    return;
+  }
   for (int current_layer = 0; current_layer < layers; current_layer++) {
     int box_x_width = width / pow(2, current_layer + 1);
     printf("box_x_width: %d\n", box_x_width);
@@ -52,20 +54,19 @@ Vector2 **gen_uniform(int width, int height, int layers, int *num_points) {
       da_push(arr, &(Vector2){.x = x, .y = y3});
     }
   }
-  *num_points = arr->size;
   assert(arr->size == (pow(4, layers) - 1));
-  return (Vector2 **)arr->array;
 }
 
 int main() {
   int num_points_gen = 0;
-  Vector2 **generated_vec = gen_uniform(800, 800, 5, &num_points_gen);
-  for (int i = 0; i < num_points_gen; i++) {
-    // printf("x:%f,y:%f\n", generated_vec[i]->x, generated_vec[i]->y);
-  }
+  int layers = 5; // Number of layers in the KD tree
+  DynamicArray *arr = da_init(pow(4, layers), sizeof(Vector2));
+  gen_uniform(arr,800, 800, layers);
+  Vector2 **generated_vec = (Vector2**)arr->array;
+  num_points_gen = arr->size;
   printf("%d points generated", num_points_gen);
   InitWindow(800, 800, "kd tree");
-  SetTargetFPS(60);
+  SetTargetFPS(30);
   char *img_path =
       create_image(get_current_second(), "font.ttf", 256, 256, "output.png");
 
@@ -76,41 +77,41 @@ int main() {
                                              &num_points, &width, &height);
   // Use points...
   printf("Generated %d points on %dx%d image\n", num_points, width, height);
+  assert(num_points == num_points_gen);
   Vector2 *points_vector2 = (Vector2 *)malloc(num_points_gen * sizeof(Vector2));
   for (int i = 0; i < num_points; i++) {
     points_vector2[i].x = points[i].x * 3;
     points_vector2[i].y = points[i].y * 3;
   }
-  Vector2 *x_sorted = (Vector2 *)malloc(num_points * sizeof(Vector2));
-  qsort(x_sorted, num_points, sizeof(Vector2), CompareX);
-  for (int i = 0; i < num_points_gen; i++) {
-    points_vector2[i].x = generated_vec[i]->x;
-    points_vector2[i].y = generated_vec[i]->y;
-  }
+  // Vector2 *x_sorted = (Vector2 *)malloc(num_points * sizeof(Vector2));
+  // qsort(x_sorted, num_points, sizeof(Vector2), CompareX);
+  // for (int i = 0; i < num_points_gen; i++) {
+  //   points_vector2[i].x = generated_vec[i]->x;
+  //   points_vector2[i].y = generated_vec[i]->y;
+  // }
   float interpolation = 0;
   int noise_index = 0;
   simplex1d_init();
   while (!WindowShouldClose()) {
 
     BeginDrawing();
-    ClearBackground(BLACK);
+    ClearBackground(WHITE);
     double time_secs = GetTime() * 1.0f;
-    for (int i = 0; i < num_points_gen; i++) {
-      points_vector2[i].x =
-          generated_vec[i]->x + (simplex1d(i * 0.1 + time_secs) * 10.0);
-      points_vector2[i].y =
-          generated_vec[i]->y + (simplex1d(i * 0.1 + time_secs + 100.5) * 5.0);
-      noise_index++;
-      if (noise_index > 100000) {
-        noise_index = 0;
-      }
-    }
+    // for (int i = 0; i < num_points_gen; i++) {
+    //   points_vector2[i].x =
+    //       points_vector2[i].x + (simplex1d(i * 0.1 + time_secs) * 1.0);
+    //   points_vector2[i].y =
+    //       points_vector2[i].y + (simplex1d(i * 0.1 + time_secs + 100.5) * .5);
+    //   noise_index++;
+    //   if (noise_index > 100000) {
+    //     noise_index = 0;
+    //   }
+    // }
     int fps = GetFPS();
     const char *fps_s = TextFormat("FPS:%d", fps);
-    DrawText(fps_s, 0, 0, 10, WHITE);
+    DrawText(fps_s, 0, 0, 10, RED);
     TreeNode *tree = buildKDTree(points_vector2, num_points_gen, 1, NULL, 0.5);
     DrawKDTree(tree, 0, 0, 800, 800);
-    // DrawRectangle(0, 0, 800, 800, GREEN);
     EndDrawing();
     freeTree(tree);
   }
