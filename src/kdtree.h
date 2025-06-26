@@ -9,7 +9,8 @@ typedef struct TreeNode {
   struct TreeNode *parent;
 } TreeNode;
 
-TreeNode* buildKDTree(Vector2* points, int count, int depth, TreeNode* parent, double interpolation);
+TreeNode *buildKDTree(Vector2 *origin, Vector2 *target,int count, int depth, TreeNode *parent,
+                      double interpolation);
 void freeTree(TreeNode *node);
 void DrawKDTree(TreeNode *node, int xMin, int yMin, int xMax, int yMax);
 // void RebuildTree(TreeNode *tree, Vector2 *points, int pointCount,

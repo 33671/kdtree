@@ -5,8 +5,8 @@
 
 #include "reject_sampling.h"
 
-char *create_image(const char *text, const char *font_path, int width,
-                   int height, const char *path) {
+Image *create_image(const char *text, const char *font_path, int width,
+                   int height) {
   // Create white background image
   Image image = GenImageColor(width, height, WHITE);
   Font font = GetFontDefault();
@@ -26,20 +26,22 @@ char *create_image(const char *text, const char *font_path, int width,
   // Draw text in black
   ImageDrawTextEx(&image, font, text, position, font_size, 2, BLACK);
 
-  // Convert to grayscale and save
+  // Convert to grayscale
   ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_GRAYSCALE);
-  ExportImage(image, path);
+  // ExportImage(image, path);
 
   // Cleanup resources
   if (font_loaded)
     UnloadFont(font);
-  UnloadImage(image);
+  Image* image_p = (Image*)malloc(sizeof(Image));
+  *image_p = image;
+  // UnloadImage(image);
 
   // Return duplicated path string
-  return strdup(path);
+  return image_p;
 }
 
-Point *distribute_points_on_image(const char *image_path, int num_points,
+Point *distribute_points_on_image(Image *img_p, int num_points,
                                   float min_distance, int *out_num_points,
                                   int *out_width, int *out_height) {
   // Initialize output parameters
@@ -48,9 +50,10 @@ Point *distribute_points_on_image(const char *image_path, int num_points,
   *out_height = 0;
 
   // Load image
-  Image img = LoadImage(image_path);
+  // Image img = LoadImage(image_path);
+  Image img = *img_p;
   if (!img.data) {
-    fprintf(stderr, "Error: Image file not found at %s\n", image_path);
+    fprintf(stderr, "Error: Image empty");
     return NULL;
   }
 

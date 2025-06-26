@@ -51,7 +51,7 @@ target_link_libraries(${PROJECT_NAME} raylib)
 # Web Configurations
 if ("${PLATFORM}" STREQUAL "Web")
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        LINK_FLAGS "-s ASYNCIFY=1"
+        LINK_FLAGS "-s ASYNCIFY=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=16 -pthread"
     )
     # Tell Emscripten to build an example.html file.
     set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
