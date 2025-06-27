@@ -2,11 +2,13 @@
 #include "kdtree.h"
 #include "msg_queue.h"
 #include "raylib.h"
+#include "raymath.h"
 #include "reject_sampling.h"
 #include "simplex.h"
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,8 +69,15 @@ void *thread_func(void *arg) {
   thread_arg *arg1 = (thread_arg *)arg;
   MessageQueue *queue = arg1->queue;
   while (true) {
-    sleep(1);
-    Image *img = create_image(get_current_second(), "font.ttf", 256, 256);
+    static char last_time[4];
+
+    usleep(50 * 1000);
+    char *secs = get_current_second();
+    if (strcmp(secs, last_time) == 0) {
+      continue;
+    }
+    Image *img = create_image(secs, "font.ttf", 256, 256);
+    strcpy(last_time, secs);
 
     // Distribute points
     int num_points, width, height;
@@ -87,21 +96,33 @@ void *thread_func(void *arg) {
   }
   return NULL;
 }
+float smootherstep(float edge0, float edge1, float x) {
+  if (x <= edge0)
+    return 0.0f;
+  if (x >= edge1)
+    return 1.0f;
 
+  float t = (x - edge0) / (edge1 - edge0);
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+float fract(float x) {
+  float intpart;
+  return modff(x, &intpart);
+}
 int main() {
 
   // pthread_join(thread, NULL);
   int num_points_grid = 0;
   int layers = 5; // Number of layers in the KD tree
   MessageQueue queue = {0};
-  msg_queue_init(&queue, 2);
+  msg_queue_init(&queue, 5);
   DynamicArray *arr = da_init(pow(4, layers), sizeof(Vector2));
   gen_uniform(arr, 800, 800, layers);
   Vector2 **generated_vec = (Vector2 **)arr->array;
   num_points_grid = arr->size;
   printf("%d points generated", num_points_grid);
   InitWindow(800, 800, "kd tree");
-  SetTargetFPS(30);
+  SetTargetFPS(60);
 
   Image *img = create_image(get_current_second(), "font.ttf", 256, 256);
 
@@ -128,27 +149,35 @@ int main() {
     origin_points_vector2_[i].x = generated_vec[i]->x;
     origin_points_vector2_[i].y = generated_vec[i]->y;
   }
-  float interpolation = 0;
   int noise_index = 0;
   simplex1d_init();
+  bool animation_finished = false;
   float last_draw_secs = GetTime();
   while (!WindowShouldClose()) {
 
     BeginDrawing();
     ClearBackground(WHITE);
-    double time_secs = GetTime();
-    double interpo = sin(GetTime() * 2.0) / 2.0 + .5;
-    if (time_secs - last_draw_secs > 1.0 && interpo <= 0.01) {
+    if (animation_finished) {
       Vector2 *temp = msg_queue_recv_nonblocking(&queue);
       if (temp) {
-        free(points_vector2);
+        free(origin_points_vector2_);
+        origin_points_vector2_ = points_vector2;
         points_vector2 = temp;
-        last_draw_secs = time_secs;
+        last_draw_secs = GetTime();
+        animation_finished = false;
       }
     }
+    double time_secs_delta = GetTime() - last_draw_secs;
+    double interpo =
+        Clamp(smootherstep(0.0, 1.0, fract(time_secs_delta)), 0.0, 1.0);
     int fps = GetFPS();
     const char *fps_s = TextFormat("FPS:%d", fps);
     DrawText(fps_s, 0, 0, 10, RED);
+    if (interpo >= 0.99) {
+      animation_finished = true;
+      interpo = 1.0;
+      last_draw_secs = GetTime();
+    }
     TreeNode *tree = buildKDTree(origin_points_vector2_, points_vector2,
                                  num_points_grid, 1, NULL, interpo);
     DrawKDTree(tree, 0, 0, 800, 800);

@@ -52,6 +52,7 @@ Point *distribute_points_on_image(Image *img_p, int num_points,
   // Load image
   // Image img = LoadImage(image_path);
   Image img = *img_p;
+  free(img_p);
   if (!img.data) {
     fprintf(stderr, "Error: Image empty");
     return NULL;
