@@ -93,6 +93,7 @@ void *thread_func(void *arg) {
       points_vector2[i].y = points[i].y * 3;
     }
     msg_queue_send_blocking(queue, points_vector2);
+    printf("secs:%s\n",secs);
   }
   return NULL;
 }
@@ -115,7 +116,7 @@ int main() {
   int num_points_grid = 0;
   int layers = 5; // Number of layers in the KD tree
   MessageQueue queue = {0};
-  msg_queue_init(&queue, 5);
+  msg_queue_init(&queue, 1);
   DynamicArray *arr = da_init(pow(4, layers), sizeof(Vector2));
   gen_uniform(arr, 800, 800, layers);
   Vector2 **generated_vec = (Vector2 **)arr->array;
@@ -159,7 +160,7 @@ int main() {
     ClearBackground(WHITE);
     if (animation_finished) {
       Vector2 *temp = msg_queue_recv_nonblocking(&queue);
-      if (temp) {
+      if (temp != NULL) {
         free(origin_points_vector2_);
         origin_points_vector2_ = points_vector2;
         points_vector2 = temp;
@@ -170,6 +171,10 @@ int main() {
     double time_secs_delta = GetTime() - last_draw_secs;
     double interpo =
         Clamp(smootherstep(0.0, 1.0, fract(time_secs_delta)), 0.0, 1.0);
+    if (animation_finished)
+    {
+      interpo = 1.0;
+    }
     int fps = GetFPS();
     const char *fps_s = TextFormat("FPS:%d", fps);
     DrawText(fps_s, 0, 0, 10, RED);
