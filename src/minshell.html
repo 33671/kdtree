@@ -4,50 +4,233 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-    <title>raylib web game</title>
+    <title>KD-Tree Visualization - Raylib Web</title>
 
-    <meta name="title" content="raylib web game">
-    <meta name="description" content="New raylib web videogame, developed using raylib videogames library">
-    <meta name="keywords" content="raylib, games, html5, programming, C, C++, library, learn, videogames">
-    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="KD-Tree Visualization - Raylib Web">
+    <meta name="description" content="Interactive KD-Tree visualization built with raylib and compiled to WebAssembly">
+    <meta name="keywords" content="kd-tree, visualization, raylib, webassembly, algorithms, data structures">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Open Graph metatags for sharing -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="raylib web game">
+    <meta property="og:title" content="KD-Tree Visualization - Raylib Web">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image" content="https://www.raylib.com/common/raylib_logo.png">
-    <meta property="og:image:alt" content="New raylib web videogame, developed using raylib videogames library" />
-    <meta property="og:site_name" content="raylib - example">
-    <meta property="og:url" content="https://www.raylib.com/games.html">
-    <meta property="og:description" content="New raylib web videogame, developed using raylib videogames library">
+    <meta property="og:image:alt" content="Interactive KD-Tree visualization" />
+    <meta property="og:site_name" content="KD-Tree Visualization">
+    <meta property="og:description" content="Interactive KD-Tree visualization built with raylib and compiled to WebAssembly">
 
     <!-- Twitter metatags for sharing -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@raysan5">
-    <meta name="twitter:title" content="raylib web game">
+    <meta name="twitter:title" content="KD-Tree Visualization - Raylib Web">
     <meta name="twitter:image" content="https://www.raylib.com/common/raylib_logo.png">
-    <meta name="twitter:image:alt" content="New raylib web videogame, developed using raylib videogames library">
-    <meta name="twitter:url" content="https://www.raylib.com/games.html">
-    <meta name="twitter:description" content="New raylib web videogame, developed using raylib videogames library">
+    <meta name="twitter:image:alt" content="Interactive KD-Tree visualization">
+    <meta name="twitter:description" content="Interactive KD-Tree visualization built with raylib and compiled to WebAssembly">
 
     <!-- Favicon -->
     <link rel="shortcut icon" href="https://www.raylib.com/favicon.ico">
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Web Style -->
     <style>
-        body { 
-          margin: 0px; 
-          overflow: hidden; 
-          background-color: black;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #a0a0a0;
+            margin-top: 0.25rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         canvas.emscripten { 
-          border: 0px none; 
-          background-color: black;
-          padding-left: 0;
-          padding-right: 0;
-          margin-left: auto;
-          margin-right: auto;
-          display: block;
+            border: 0px none; 
+            background-color: black;
+            display: block;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 15, 35, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 212, 255, 0.3);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            color: #a0a0a0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .logo {
+                font-size: 1.25rem;
+            }
+            
+            .controls {
+                gap: 0.5rem;
+            }
+            
+            .btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
         }
     </style>
     <script type='text/javascript' src="https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js"> </script>
@@ -71,27 +254,118 @@
     </script>
     </head>
     <body>
-        <canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas>
-        <p id="output" />
+        <div class="container">
+            <header class="header">
+                <div class="header-content">
+                    <div>
+                        <div class="logo">KD-Tree Visualization</div>
+                        <div class="subtitle">KD-tree interpolation animation • Points transitioning between configurations</div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="toggleFullscreen()">Fullscreen</button>
+                        <button class="btn" onclick="resetView()">Reset View</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="game-container">
+                    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading KD-Tree Visualization...</div>
+                    </div>
+                </div>
+                
+                <div class="status-bar" id="statusBar">
+                    KD-tree interpolation • Points animate between configurations every second
+                </div>
+            </main>
+
+            <footer class="footer">
+                Built with <a href="https://www.raylib.com" target="_blank">raylib</a> • 
+                <a href="https://github.com/raysan5/raylib" target="_blank">View on GitHub</a>
+            </footer>
+        </div>
+
+        <p id="output" style="display: none;"></p>
+        
         <script>
             var Module = {
                 print: (function() {
                     var element = document.getElementById('output');
-                    if (element) element.value = ''; // clear browser cache
+                    if (element) element.value = '';
                     return function(text) {
                         if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                         console.log(text);
                         if (element) {
                           element.value += text + "\n";
-                          element.scrollTop = element.scrollHeight; // focus on bottom
+                          element.scrollTop = element.scrollHeight;
                         }
                     };
                 })(),
                 canvas: (function() {
                     var canvas = document.getElementById('canvas');
                     return canvas;
-                })()
+                })(),
+                onRuntimeInitialized: function() {
+                    // Hide loading overlay when WASM is ready
+                    setTimeout(function() {
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                    }, 500);
+                }
             };
+
+            // Utility functions for controls
+            function toggleFullscreen() {
+                const canvas = document.getElementById('canvas');
+                if (!document.fullscreenElement) {
+                    canvas.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            function resetView() {
+                // This would need to be implemented in your C code
+                console.log('Reset view requested');
+                // You could send a message to the wasm module here
+            }
+
+            // Update status bar based on mouse interaction
+            let statusTimeout;
+            document.addEventListener('mousemove', function(e) {
+                const statusBar = document.getElementById('statusBar');
+                statusBar.style.opacity = '1';
+                
+                clearTimeout(statusTimeout);
+                statusTimeout = setTimeout(() => {
+                    statusBar.style.opacity = '0.7';
+                }, 2000);
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'f' || e.key === 'F') {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        toggleFullscreen();
+                    }
+                }
+                if (e.key === 'r' || e.key === 'R') {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        resetView();
+                    }
+                }
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                // Let the canvas resize naturally with CSS
+            });
         </script>
         {{{ SCRIPT }}}
     </body>

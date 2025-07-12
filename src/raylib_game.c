@@ -93,26 +93,26 @@ void *thread_func(void *arg) {
       points_vector2[i].y = points[i].y * 3;
     }
     msg_queue_send_blocking(queue, points_vector2);
-    printf("secs:%s\n",secs);
+    printf("secs:%s\n", secs);
   }
   return NULL;
 }
 float smootherstep(float edge0, float edge1, float x) {
-  if (x <= edge0)
-    return 0.0f;
-  if (x >= edge1)
-    return 1.0f;
+  // if (x <= edge0)
+  //   return 0.0f;
+  // if (x >= edge1)
+  //   return 1.0f;
 
-  float t = (x - edge0) / (edge1 - edge0);
-  return t * t * t * (t * (t * 6 - 15) + 10);
+  // float t = (x - edge0) / (edge1 - edge0);
+  // return t * t * t * (t * (t * 6 - 15) + 10);
+  float t = x;
+  return t < 0.5f ? 4 * t * t * t : 1 - 4 * (1 - t) * (1 - t) * (1 - t);
 }
 float fract(float x) {
   float intpart;
   return modff(x, &intpart);
 }
 int main() {
-
-  // pthread_join(thread, NULL);
   int num_points_grid = 0;
   int layers = 5; // Number of layers in the KD tree
   MessageQueue queue = {0};
@@ -170,9 +170,8 @@ int main() {
     }
     double time_secs_delta = GetTime() - last_draw_secs;
     double interpo =
-        Clamp(smootherstep(0.0, 1.0, fract(time_secs_delta)), 0.0, 1.0);
-    if (animation_finished)
-    {
+        Clamp(smootherstep(0.0, 1.0, time_secs_delta), 0.0, 1.0);
+    if (animation_finished) {
       interpo = 1.0;
     }
     int fps = GetFPS();
