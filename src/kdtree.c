@@ -5,11 +5,7 @@
 #include "stddef.h"
 #include <stdio.h>
 #include <stdlib.h>
-// void RebuildTree(TreeNode *tree, Vector2 *points, int pointCount,
-//                  double interpolation) {
-//   freeTree(tree);
-//   tree = buildKDTree(points, pointCount, 0, NULL, interpolation);
-// }
+
 TreeNode *buildKDTree(Vector2 *origin, Vector2 *target,int count, int depth, TreeNode *parent,
                       double interpolation) {
   if (count == 0)
@@ -22,7 +18,6 @@ TreeNode *buildKDTree(Vector2 *origin, Vector2 *target,int count, int depth, Tre
   // Calculate split index
   int index = (int)((count)*0.5);
   index = Clamp(index, 0, count - 1);
-  // Vector2 delta = Vector2Subtract(target[index],origin[index]);
   Vector2 p = Vector2Lerp(origin[index], target[index],interpolation);
 
   // Create node

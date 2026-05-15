@@ -5,13 +5,33 @@
 
 #include "reject_sampling.h"
 
+Image *create_image_with_font(const char *text, Font font, int font_size,
+                              int width, int height) {
+  // Create white background image
+  Image image = GenImageColor(width, height, WHITE);
+
+  // Measure text dimensions
+  Vector2 text_size = MeasureTextEx(font, text, font_size, 0);
+  Vector2 position = {(width - text_size.x) / 2, (height - text_size.y) / 2};
+
+  // Draw text in black
+  ImageDrawTextEx(&image, font, text, position, font_size, 2, BLACK);
+
+  // Convert to grayscale
+  ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_GRAYSCALE);
+
+  Image* image_p = (Image*)malloc(sizeof(Image));
+  *image_p = image;
+  return image_p;
+}
+
 Image *create_image(const char *text, const char *font_path, int width,
                    int height) {
   // Create white background image
   Image image = GenImageColor(width, height, WHITE);
   Font font = GetFontDefault();
   bool font_loaded = false;
-  int font_size = 120;
+  int font_size = 160;
 
   // Load custom font if available, else use default
   if (FileExists(font_path)) {

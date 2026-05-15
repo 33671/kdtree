@@ -64,10 +64,14 @@ void gen_uniform(DynamicArray *arr, int width, int height, int layers) {
 typedef struct thread_arg {
   int num_points_grid;
   MessageQueue *queue;
+  Font font;
+  int font_size;
 } thread_arg;
 void *thread_func(void *arg) {
   thread_arg *arg1 = (thread_arg *)arg;
   MessageQueue *queue = arg1->queue;
+  Font font = arg1->font;
+  int font_size = arg1->font_size;
   while (true) {
     static char last_time[4];
 
@@ -76,7 +80,7 @@ void *thread_func(void *arg) {
     if (strcmp(secs, last_time) == 0) {
       continue;
     }
-    Image *img = create_image(secs, "font.ttf", 256, 256);
+    Image *img = create_image_with_font(secs, font, font_size, 320, 320);
     strcpy(last_time, secs);
 
     // Distribute points
@@ -89,8 +93,8 @@ void *thread_func(void *arg) {
         (Vector2 *)malloc(arg1->num_points_grid * sizeof(Vector2));
     printf("Generated %d points on %dx%d image\n", num_points, width, height);
     for (int i = 0; i < num_points; i++) {
-      points_vector2[i].x = points[i].x * 3;
-      points_vector2[i].y = points[i].y * 3;
+      points_vector2[i].x = points[i].x * 2.5f;
+      points_vector2[i].y = points[i].y * 2.5f;
     }
     msg_queue_send_blocking(queue, points_vector2);
     printf("secs:%s\n", secs);
@@ -125,7 +129,16 @@ int main() {
   InitWindow(800, 800, "kd tree");
   SetTargetFPS(60);
 
-  Image *img = create_image(get_current_second(), "font.ttf", 256, 256);
+  // Load font once in main thread (raylib texture ops not thread-safe)
+  int font_size = 160;
+  Font font = GetFontDefault();
+  bool font_loaded = false;
+  if (FileExists("font.ttf")) {
+    font = LoadFontEx("font.ttf", font_size, NULL, 0);
+    font_loaded = true;
+  }
+
+  Image *img = create_image_with_font(get_current_second(), font, font_size, 320, 320);
 
   // Distribute points
   int num_points, width, height;
@@ -138,19 +151,19 @@ int main() {
   Vector2 *points_vector2 =
       (Vector2 *)malloc(num_points_grid * sizeof(Vector2));
   for (int i = 0; i < num_points; i++) {
-    points_vector2[i].x = points[i].x * 3;
-    points_vector2[i].y = points[i].y * 3;
+    points_vector2[i].x = points[i].x * 2.5f;
+    points_vector2[i].y = points[i].y * 2.5f;
   }
   pthread_t thread;
-  thread_arg arg = {.num_points_grid = num_points_grid, .queue = &queue};
+  thread_arg arg = {.num_points_grid = num_points_grid, .queue = &queue, .font = font, .font_size = font_size};
   pthread_create(&thread, NULL, thread_func, &arg);
+
   Vector2 *origin_points_vector2_ =
       (Vector2 *)malloc(num_points_grid * sizeof(Vector2));
-  for (int i = 0; i < num_points; i++) {
+  for (int i = 0; i < num_points_grid; i++) {
     origin_points_vector2_[i].x = generated_vec[i]->x;
     origin_points_vector2_[i].y = generated_vec[i]->y;
   }
-  int noise_index = 0;
   simplex1d_init();
   bool animation_finished = false;
   float last_draw_secs = GetTime();
